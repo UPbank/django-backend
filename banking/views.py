@@ -1,5 +1,5 @@
 
-from rest_framework import viewsets, mixins
+from rest_framework import viewsets, mixins, pagination
 from rest_framework.exceptions import ValidationError
 
 from banking.permissions import IsAuthenticatedOrCreating
@@ -24,16 +24,23 @@ class AccountView(viewsets.ModelViewSet):
 				raise ValidationError('errors.account_has_balance')
 			return super().perform_destroy(instance)
 
+class TransferPagination(pagination.CursorPagination):
+	page_size = 10
+	page_size_query_param = 'page_size'
+	max_page_size = 50
+	ordering = '-id'
+
 class TransferView(viewsets.ModelViewSet):
-	queryset = models.Transfer.objects.all()
+	queryset = models.Transfer.objects.prefetch_related('sender', 'receiver')
 	serializer_class = serializers.TransferSerializer
+	pagination_class = TransferPagination
 
 	def get_queryset(self):
 		'''Given a min date, a max date, a type ("SEND" or "RECEIVE") and a sender/reciever, returns a list of transfers'''
 		if self.request.user.is_anonymous:
 			return models.Transfer.objects.none()
 		user_account = models.Account.objects.get(user=self.request.user)
-		result = self.queryset.prefetch_related('sender', 'receiver')
+		result = self.queryset
 		transfer_type = self.request.query_params.get('type', None)
 		if (transfer_type is not None):
 			if (transfer_type == "SEND"):
@@ -79,4 +86,16 @@ class StandingOrderView(viewsets.ModelViewSet):
 	serializer_class = serializers.StandingOrderSerializer
 	
 	def get_queryset(self):
-		return models.StandingOrder.objects.filter(sender=self.request.user.account)
+		return models.StandingOrder.objects.filter(sender=self.request.user.account).prefetch_related('receiver')
+
+class DirectDebitView(mixins.ListModelMixin, mixins.UpdateModelMixin, viewsets.GenericViewSet):
+	serializer_class = serializers.DirectDebitSerializer
+	
+	def get_queryset(self):
+		return models.DirectDebit.objects.filter(sender=self.request.user.account).prefetch_related('receiver')
+
+class CardView(mixins.ListModelMixin, mixins.UpdateModelMixin, viewsets.GenericViewSet):
+	serializer_class = serializers.CardSerializer
+	
+	def get_queryset(self):
+		return models.Card.objects.filter(account=self.request.user.account)
