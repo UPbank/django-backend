@@ -12,7 +12,7 @@ from django.apps import apps
 from django.db import transaction, models
 from django.contrib.auth.password_validation import validate_password
 
-from .validators import clean_postalcode, clean_taxnumber, clean_birthdate, clean_invalid_characters
+from .validators import clean_postalcode, clean_taxnumber, clean_birthdate, clean_invalid_characters, clean_iban
 
 # Load user model
 User = apps.get_model(settings.AUTH_USER_MODEL)
@@ -138,7 +138,7 @@ class TransferSerializer(serializers.Serializer):
 			return Transfer.objects.create(sender=sender, receiver=receiver, **validated_data)
 
 class BankTransferSerializer(TransferSerializer):
-	iban = serializers.CharField(min_length=25, max_length=25, write_only=True)
+	iban = serializers.CharField(min_length=25, max_length=25, write_only=True, validators=[clean_iban])
 
 	receiver = None # override superclass
 	

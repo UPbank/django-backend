@@ -1,5 +1,5 @@
 from rest_framework import exceptions
-from .validators_pt import controlNIF
+from .validators_pt import controlIBAN, controlNIF
 from dateutil.relativedelta import relativedelta
 import datetime
 
@@ -21,13 +21,22 @@ def clean_postalcode(postal_code):
 		raise exceptions.ValidationError("errors.invalid_postal_code") from e
 
 def clean_taxnumber(tax_number):
-	'''Given a tax number as an int, validate the tax number against the portuguese strandard'''
+	'''Given a tax number as an int, validate the tax number against the portuguese standard'''
 	try:
 		if not controlNIF(tax_number):
 			raise exceptions.ValidationError("errors.invalid_tax_number")
 
 	except ValueError as e:
 		raise exceptions.ValidationError("errors.invalid_tax_number") from e
+
+def clean_iban(tax_number):
+	'''Given an IBAN as a string, validate the IBAN against the portuguese standard'''
+	try:
+		if not controlIBAN(tax_number):
+			raise exceptions.ValidationError("errors.invalid_iban")
+
+	except ValueError as e:
+		raise exceptions.ValidationError("errors.invalid_iban") from e
 
 def clean_birthdate(birthdate):
 	if birthdate is not None:
