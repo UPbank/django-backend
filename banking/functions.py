@@ -10,4 +10,4 @@ def id_to_iban(id):
 
 def id_to_card_number(id):
 	"""Converts a given ID to a card number."""
-	return luhn.append((_card_prefix + str(id)).zfill(15))
+	return luhn.append((_card_prefix + str(id).zfill(9)))
