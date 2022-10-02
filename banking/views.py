@@ -1,41 +1,47 @@
-from django.shortcuts import render
-
-# Create your views here.
 
 from rest_framework import viewsets, mixins
 from rest_framework.exceptions import ValidationError
 
-from .models import Account, Transfer
-from .serializers import *
+from banking.permissions import IsAuthenticatedOrCreating
+from . import serializers, models
 
-class AccountViewSet(viewsets.ModelViewSet):
+from django.db import transaction
+
+class AccountView(viewsets.ModelViewSet):
 	'''Allows user to manage their own accounts'''
-	queryset = Account.objects.all()
-	serializer_class = AccountSerializer
+	queryset = models.Account.objects.all()
+	serializer_class = serializers.AccountSerializer
+	permission_classes = (IsAuthenticatedOrCreating,)
 
 	def get_queryset(self):
 		if self.request.user.is_anonymous:
-			return Account.objects.none()
+			return models.Account.objects.none()
 		return self.queryset.filter(user=self.request.user)
+	
+	def perform_destroy(self, instance):
+		with transaction.atomic():
+			if instance.select_for_update().balance != 0:
+				raise ValidationError('errors.account_has_balance')
+			return super().perform_destroy(instance)
 
-class TransferViewSet(viewsets.ModelViewSet):
-	queryset = Transfer.objects.all()
-	serializer_class = TransferSerializer
+class TransferView(viewsets.ModelViewSet):
+	queryset = models.Transfer.objects.all()
+	serializer_class = serializers.TransferSerializer
 
 	def get_queryset(self):
 		'''Given a min date, a max date, a type ("SEND" or "RECEIVE") and a sender/reciever, returns a list of transfers'''
 		if self.request.user.is_anonymous:
-			return Transfer.objects.none()
-		user_account = Account.objects.get(user=self.request.user)
+			return models.Transfer.objects.none()
+		user_account = models.Account.objects.get(user=self.request.user)
 		result = self.queryset.prefetch_related('sender', 'receiver')
-		type = self.request.query_params.get('type', None)
-		if (type is not None):
-			if (type == "SEND"):
+		transfer_type = self.request.query_params.get('type', None)
+		if (transfer_type is not None):
+			if (transfer_type == "SEND"):
 				result = result.filter(sender=user_account)
-			elif (type == "RECEIVE"):
+			elif (transfer_type == "RECEIVE"):
 				result = result.filter(receiver=user_account)
 			else:
-				raise ValidationError(f"Invalid transfer type: {type}")
+				raise ValidationError(f"Invalid transfer type: {transfer_type}")
 		else:
 			result = result.filter(sender=user_account) | self.queryset.filter(receiver=user_account)
 
@@ -52,3 +58,25 @@ class TransferViewSet(viewsets.ModelViewSet):
 			result = result.filter(sender__full_name__icontains=sender_receiver) | result.filter(receiver__full_name__icontains=sender_receiver)
 		
 		return result
+
+class BankTransferView(mixins.CreateModelMixin, viewsets.GenericViewSet):
+	serializer_class = serializers.BankTransferSerializer
+
+class ServicePaymentView(mixins.CreateModelMixin, viewsets.GenericViewSet):
+	serializer_class = serializers.ServicePaymentSerializer
+
+class GovernmentPaymentView(mixins.CreateModelMixin, viewsets.GenericViewSet):
+	serializer_class = serializers.GovernmentPaymentSerializer
+
+class TelcoPaymentView(mixins.CreateModelMixin, viewsets.GenericViewSet):
+	serializer_class = serializers.TelcoPaymentSerializer
+
+class TelcoProviderView(mixins.ListModelMixin, viewsets.GenericViewSet):
+	serializer_class = serializers.TelcoProviderSerializer
+	queryset = models.TelcoProvider.objects.all()
+
+class StandingOrderView(viewsets.ModelViewSet):
+	serializer_class = serializers.StandingOrderSerializer
+	
+	def get_queryset(self):
+		return models.StandingOrder.objects.filter(sender=self.request.user.account)

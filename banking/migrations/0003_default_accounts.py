@@ -2,11 +2,10 @@ from django.db import migrations, transaction
 
 
 def add_default_accounts(apps, schema_editor):
-	Account = apps.get_model('banking', 'Account')
+	Account = apps.get_model('banking', 'Account') # NOSONAR
 	default_accounts = [
 		{'name': '__UPBANK__', 'balance':0},
-		{'name' : '__OUTBOUND_TRANSFER__', 'balance':0},
-		{'name' : '__INBOUND_TRANSFER__', 'balance':0},
+		{'name' : '__BANK_TRANSFER__', 'balance':0},
 		{'name' : '__GOVERNMENT_PAYMENT_', 'balance':0},
 		{'name' : '__SERVICE_PAYMENT__', 'balance':0}
 	]

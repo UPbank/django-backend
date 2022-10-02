@@ -2,8 +2,8 @@ from django.db import migrations, transaction
 
 
 def add_telcoproviders(apps, schema_editor):
-	TelcoProvider = apps.get_model('banking', 'TelcoProvider')
-	Account = apps.get_model('banking', 'Account')
+	TelcoProvider = apps.get_model('banking', 'TelcoProvider') # NOSONAR
+	Account = apps.get_model('banking', 'Account') # NOSONAR
 	providers = [
 		'Lycamobile GT Mobile',
 		'MEO',
