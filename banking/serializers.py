@@ -75,7 +75,7 @@ class TransferSerializer(serializers.Serializer):
 	
 	class Meta:
 		model = Transfer
-		fields = ['date', 'name', 'sender', 'receiver', 'amount', 'metadata', 'notes']
+		fields = ['id', 'date', 'name', 'sender', 'receiver', 'amount', 'metadata', 'notes']
 	
 	def get_name(self, obj):
 		'''If user is sender, get receiver, otherwise get sender'''
