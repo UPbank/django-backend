@@ -4,8 +4,8 @@ from random import SystemRandom
 
 from rest_framework import serializers, exceptions, validators
 
-from banking.functions import id_to_iban
-from .models import Account, Address, Card, StandingOrder, Transfer, TelcoProvider
+from banking.functions import id_to_card_number, id_to_iban
+from .models import Account, Address, Card, DirectDebit, StandingOrder, Transfer, TelcoProvider
 
 from django.conf import settings
 from django.apps import apps
@@ -33,6 +33,7 @@ class AccountSerializer(serializers.ModelSerializer):
 	full_name = serializers.CharField(required=True, validators=[clean_invalid_characters])
 	password = serializers.CharField(write_only=True, required=True, validators=[validate_password])
 	tax_number = serializers.CharField(required=True, validators=[clean_taxnumber])
+	id_number = serializers.CharField(required=True, max_length=80)
 	birthdate = serializers.DateField(required=True, validators=[clean_birthdate])
 	iban = serializers.SerializerMethodField(read_only=True)
 	balance = serializers.IntegerField(read_only=True)
@@ -216,11 +217,13 @@ class StandingOrderSerializer(serializers.ModelSerializer):
 	
 	class Meta:
 		model = StandingOrder
-		fields = ['iban', 'amount', 'frequency', 'name']
+		fields = ['id', 'iban', 'amount', 'frequency', 'name']
 	
 	def create(self, validated_data):
 		iban = validated_data.pop('iban')
 		sender = self.context['request'].user.account
+		if sender.standing_orders.count() >= 20:
+			raise exceptions.ValidationError('errors.too_many_standing_orders')
 		try:
 			receiver = Account.objects.get(id=int(iban[12:23]))
 			if sender == receiver:
@@ -239,3 +242,22 @@ class StandingOrderSerializer(serializers.ModelSerializer):
 				**validated_data
 			}
 		)
+
+class DirectDebitSerializer(serializers.ModelSerializer):
+	name = serializers.CharField(source='receiver.full_name', read_only=True)
+	class Meta:
+		model = DirectDebit
+		fields = ['id', 'active', 'name']
+
+class CardSerializer(serializers.ModelSerializer):
+	pin_code = serializers.IntegerField(min_value=0, max_value=9999, write_only=True)
+	number = serializers.SerializerMethodField(read_only=True)
+	cvv = serializers.IntegerField(read_only=True)
+	expiry_date = serializers.DateField(read_only=True)
+
+	def get_number(self, obj):
+		return id_to_card_number(obj.id)
+
+	class Meta:
+		model = Card
+		fields = ['id', 'name', 'number', 'expiry_date', 'cvv', 'pin_code', 'online_payments', 'nfc_payments']
