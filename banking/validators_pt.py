@@ -176,9 +176,21 @@ def controlNIB(nib): # NOSONAR
 	# verificar tamanho do número passado
 	if len(nib) != LEN_NIB:
 		return False
-
+		
 	# ultimos dois dígitos são o valor de verificação
 	return nib[-2] * 10 + nib[-1] == 98 - _sumLists(table, nib[:-2]) % 97
+
+def generateControlNIB(nib): # NOSONAR
+	table = (73, 17, 89, 38, 62, 45, 53, 15, 50,
+			5, 49, 34, 81, 76, 27, 90, 9, 30, 3)
+
+
+	# converter para lista de inteiros
+	nib = _toIntList(nib)
+
+	if len(nib) != 19:
+		return False
+	return 98 - _sumLists(table, nib) % 97
 
 
 def controlIBAN(iban): # NOSONAR
@@ -190,7 +202,7 @@ def controlIBAN(iban): # NOSONAR
 
 	# verificar código IBAN para Portugal
 	if iban[:4] == 'PT50':
-		return controlNIB(iban[5:])
+		return controlNIB(iban[4:])
 	else:
 		raise ValueError("Código IBAN não suportado: %s" % iban[:4])
 
