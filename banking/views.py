@@ -52,15 +52,15 @@ class TransferView(viewsets.ModelViewSet):
 		else:
 			result = result.filter(sender=user_account) | self.queryset.filter(receiver=user_account)
 
-		min_date = self.request.query_params.get('min_date', None)
+		min_date = self.request.query_params.get('minDate', None)
 		if (min_date is not None):
 			result = result.filter(date__gte=min_date)
 		
-		max_date = self.request.query_params.get('max_date', None)
+		max_date = self.request.query_params.get('maxDate', None)
 		if (max_date is not None):
 			result = result.filter(date__lte=max_date)
 		
-		sender_receiver = self.request.query_params.get('sender_receiver', None)
+		sender_receiver = self.request.query_params.get('fromTo', None)
 		if (sender_receiver is not None):
 			result = result.filter(sender__full_name__icontains=sender_receiver) | result.filter(receiver__full_name__icontains=sender_receiver)
 		
