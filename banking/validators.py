@@ -29,10 +29,10 @@ def clean_taxnumber(tax_number):
 	except ValueError as e:
 		raise exceptions.ValidationError("errors.invalid_tax_number") from e
 
-def clean_iban(tax_number):
+def clean_iban(iban_number):
 	'''Given an IBAN as a string, validate the IBAN against the portuguese standard'''
 	try:
-		if not controlIBAN(tax_number):
+		if not controlIBAN(iban_number):
 			raise exceptions.ValidationError("errors.invalid_iban")
 
 	except ValueError as e:
