@@ -68,7 +68,7 @@ class TransferSerializer(serializers.Serializer):
 	name = serializers.SerializerMethodField(read_only=True)
 	sender = serializers.PrimaryKeyRelatedField(read_only=True)
 	receiver = serializers.PrimaryKeyRelatedField(queryset=Account.objects.all())
-	amount = serializers.IntegerField()
+	amount = serializers.IntegerField(min_value=1)
 	metadata = serializers.JSONField(read_only=True)
 	notes = serializers.CharField(max_length=80, allow_blank=True, allow_null=True)
 	date = serializers.DateTimeField(read_only=True)
@@ -101,7 +101,7 @@ class TransferSerializer(serializers.Serializer):
 class TransferSerializer(serializers.Serializer):
 	name = serializers.SerializerMethodField(read_only=True)
 	receiver = serializers.PrimaryKeyRelatedField(queryset=Account.objects.all(), write_only=True)
-	amount = serializers.IntegerField()
+	amount = serializers.IntegerField(min_value=1)
 	type = serializers.SerializerMethodField(read_only=True)
 	metadata = serializers.JSONField(read_only=True)
 	notes = serializers.CharField(max_length=80, allow_blank=True, allow_null=True, required=False)
@@ -214,6 +214,7 @@ class TelcoProviderSerializer(serializers.ModelSerializer):
 class StandingOrderSerializer(serializers.ModelSerializer):
 	iban = serializers.CharField(min_length=25, max_length=25, write_only=True)
 	name = serializers.CharField(source='receiver.full_name', read_only=True)
+	amount = serializers.IntegerField(min_value=1)
 	
 	class Meta:
 		model = StandingOrder
