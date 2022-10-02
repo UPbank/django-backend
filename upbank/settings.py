@@ -12,6 +12,7 @@ https://docs.djangoproject.com/en/4.1/ref/settings/
 
 from datetime import timedelta
 from pathlib import Path
+import os
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -21,26 +22,31 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/4.1/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-b!_%tm=&!b3fw=_tz=h%f36qfr%4i+4uaq!x)6pgy5e4k4qd4#'
+SECRET_KEY = os.environ.get('DJANGO_SECRET_KEY', 'django-insecure-b!_%tm=&!b3fw=_tz=h%f36qfr%4i+4uaq!x)6pgy5e4k4qd4#')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = os.environ.get('DJANGO_DEBUG', 'True') == 'True'
 
 ALLOWED_HOSTS = []
-
+if DEBUG:
+	ALLOWED_HOSTS = ['*']
+HOST = os.environ.get('DJANGO_HOST')
+PUBLIC_HOST = os.environ.get('DJANGO_PUBLIC_HOST')
+if HOST:
+	ALLOWED_HOSTS.append(HOST)
+if PUBLIC_HOST:
+	ALLOWED_HOSTS.append(PUBLIC_HOST)
 
 # Application definition
 
 INSTALLED_APPS = [
-	'django.contrib.admin',
 	'django.contrib.auth',
 	'django.contrib.contenttypes',
 	'django.contrib.sessions',
-	'django.contrib.messages',
-	'django.contrib.staticfiles',
 
 	# Local apps
 	'banking',
+
 	# Outside apps
 	'rest_framework',
 	'knox',
@@ -50,11 +56,16 @@ MIDDLEWARE = [
 	'django.middleware.security.SecurityMiddleware',
 	'django.contrib.sessions.middleware.SessionMiddleware',
 	'django.middleware.common.CommonMiddleware',
-	'django.middleware.csrf.CsrfViewMiddleware',
 	'django.contrib.auth.middleware.AuthenticationMiddleware',
-	'django.contrib.messages.middleware.MessageMiddleware',
 	'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
+
+if DEBUG:
+	INSTALLED_APPS.append('django.contrib.admin')
+	INSTALLED_APPS.append('django.contrib.messages')
+	INSTALLED_APPS.append('django.contrib.staticfiles')
+	MIDDLEWARE.append('django.middleware.csrf.CsrfViewMiddleware')
+	MIDDLEWARE.append('django.contrib.messages.middleware.MessageMiddleware')
 
 ROOT_URLCONF = 'upbank.urls'
 
@@ -87,25 +98,49 @@ DATABASES = {
 	}
 }
 
+engine = os.environ.get('DJANGO_DB_ENGINE')
+
+if engine:
+	name = os.environ.get('DJANGO_DB_NAME')
+	user = os.environ.get('DJANGO_DB_USER')
+	password = os.environ.get('DJANGO_DB_PASSWORD')
+	host = os.environ.get('DJANGO_DB_HOST')
+	port = os.environ.get('DJANGO_DB_PORT')
+	DATABASES['default'] = {
+		'ENGINE': engine,
+		'NAME': name,
+		'USER' : user,
+		'PASSWORD' : password,
+		'HOST' : host,
+		'PORT' : port
+	}
+	
+if DEBUG:
+	import sys
+	if sys.argv[1:2] == ['test']:
+		DATABASES['default'] = {
+			'ENGINE': 'django.db.backends.sqlite3',
+			'NAME': ':memory:',
+		}
 
 # Password validation
 # https://docs.djangoproject.com/en/4.1/ref/settings/#auth-password-validators
 
 AUTH_PASSWORD_VALIDATORS = [
 	{
-		'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator',
-	},
-	{
 		'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator',
-	},
-	{
-		'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator',
-	},
-	{
-		'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator',
-	},
+		'OPTIONS': {
+			'min_length': 8,
+		}
+	}, 
 ]
 
+PASSWORD_HASHERS = [
+	'django.contrib.auth.hashers.Argon2PasswordHasher',
+	'django.contrib.auth.hashers.PBKDF2PasswordHasher',
+	'django.contrib.auth.hashers.PBKDF2SHA1PasswordHasher',
+	'django.contrib.auth.hashers.BCryptSHA256PasswordHasher',
+]
 
 # Internationalization
 # https://docs.djangoproject.com/en/4.1/topics/i18n/
@@ -129,6 +164,19 @@ STATIC_URL = 'static/'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
+# ADD CORS HERE
+CORS_ORIGIN_WHITELIST = ['https://upbank.pt', 'https://www.upbank.pt']
+
+CORS_ALLOW_CREDENTIALS = True
+if DEBUG:
+	CORS_ORIGIN_ALLOW_ALL = True
+	
+SECURE_SSL_REDIRECT = not DEBUG
+CSRF_COOKIE_SECURE = not DEBUG
+SESSION_COOKIE_SECURE = not DEBUG
+SECURE_HSTS_SECONDS = 3600 if DEBUG else 31536000
+SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+
 REST_KNOX = {
 	'TOKEN_TTL': timedelta(hours=1),
 	'AUTO_REFRESH' : True,
@@ -143,7 +191,6 @@ REST_FRAMEWORK = {
 	),
 
 	'DEFAULT_PARSER_CLASSES': (
-		# If you use MultiPartFormParser or FormParser, we also have a camel case version
 		'djangorestframework_camel_case.parser.CamelCaseFormParser',
 		'djangorestframework_camel_case.parser.CamelCaseMultiPartParser',
 		'djangorestframework_camel_case.parser.CamelCaseJSONParser'
