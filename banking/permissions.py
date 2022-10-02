@@ -6,4 +6,6 @@ class IsAuthenticatedOrCreating(permissions.BasePermission):
 	"""
 
 	def has_permission(self, request, view):
-		return request.user and request.user.is_authenticated or request.method == 'POST'
+		if request.method == 'POST' and not request.user.is_authenticated:
+			return True
+		return request.user and request.user.is_authenticated
