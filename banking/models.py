@@ -51,11 +51,13 @@ class Transfer(models.Model):
 	notes = models.CharField(max_length=255, blank=True, null=True)
 
 class DirectDebit(models.Model):
-	active = models.BooleanField()
-	date = models.DateField()
-	receiver = models.ForeignKey(Account, on_delete=models.CASCADE, related_name='+')
+	active = models.BooleanField(default=True)
 	sender = models.ForeignKey(Account, on_delete=models.CASCADE, related_name='direct_debits')
-	last_debit = models.ForeignKey(Transfer, on_delete=models.PROTECT, related_name='+')
+	receiver = models.ForeignKey(Account, on_delete=models.CASCADE, related_name='+')
+	last_debit = models.ForeignKey(Transfer, on_delete=models.PROTECT, related_name='+', blank=True, null=True)
+
+	created_at = models.DateTimeField(auto_now_add=True)
+	updated_at = models.DateTimeField(auto_now=True)
 
 class StandingOrder(models.Model):
 	class Frequency(models.TextChoices):
@@ -70,3 +72,6 @@ class StandingOrder(models.Model):
 	amount = models.PositiveBigIntegerField()
 	last_debit = models.ForeignKey(Transfer, on_delete=models.PROTECT, related_name='+', blank=True, null=True)
 	metadata = models.JSONField()
+	
+	created_at = models.DateTimeField(auto_now_add=True)
+	updated_at = models.DateTimeField(auto_now=True)

@@ -26,7 +26,7 @@ class AccountView(viewsets.ModelViewSet):
 
 class TransferPagination(pagination.CursorPagination):
 	page_size = 10
-	page_size_query_param = 'page_size'
+	page_size_query_param = 'pageSize'
 	max_page_size = 50
 	ordering = '-id'
 
@@ -36,16 +36,16 @@ class TransferView(viewsets.ModelViewSet):
 	pagination_class = TransferPagination
 
 	def get_queryset(self):
-		'''Given a min date, a max date, a type ("SEND" or "RECEIVE") and a sender/reciever, returns a list of transfers'''
+		'''Given a min date, a max date, a type ("EXPENSE" or "INCOME") and a sender/reciever, returns a list of transfers'''
 		if self.request.user.is_anonymous:
 			return models.Transfer.objects.none()
 		user_account = models.Account.objects.get(user=self.request.user)
 		result = self.queryset
 		transfer_type = self.request.query_params.get('type', None)
 		if (transfer_type is not None):
-			if (transfer_type == "SEND"):
+			if (transfer_type == "EXPENSE"):
 				result = result.filter(sender=user_account)
-			elif (transfer_type == "RECEIVE"):
+			elif (transfer_type == "INCOME"):
 				result = result.filter(receiver=user_account)
 			else:
 				raise ValidationError(f"Invalid transfer type: {transfer_type}")

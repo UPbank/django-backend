@@ -62,6 +62,8 @@ class AccountSerializer(serializers.ModelSerializer):
 			generator = SystemRandom()
 			Card.objects.create(account=account, name="__PHYSICAL_CARD__", expiry_date=datetime.datetime.now() + relativedelta(years=2), pin_code=generator.randint(0, settings.MAX_PIN), cvv=generator.randint(0, settings.MAX_CVV))
 			Card.objects.create(account=account, name="__VIRTUAL_CARD__", expiry_date=datetime.datetime.now() + relativedelta(years=2), pin_code=generator.randint(0, settings.MAX_PIN), cvv=generator.randint(0, settings.MAX_CVV))
+
+			DirectDebit.objects.create(sender=account, receiver=upbank)
 			return account
 
 class TransferSerializer(serializers.Serializer):
@@ -248,7 +250,7 @@ class DirectDebitSerializer(serializers.ModelSerializer):
 	name = serializers.CharField(source='receiver.full_name', read_only=True)
 	class Meta:
 		model = DirectDebit
-		fields = ['id', 'active', 'name']
+		fields = ['id', 'active', 'name', 'created_at']
 
 class CardSerializer(serializers.ModelSerializer):
 	pin_code = serializers.IntegerField(min_value=0, max_value=9999, write_only=True)
